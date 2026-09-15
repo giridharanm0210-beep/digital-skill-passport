@@ -1,15 +1,19 @@
 name: Deploy Digital Skill Passport to GitHub Pages
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   deploy:
     environment:
@@ -19,22 +23,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
-      - name: Wire frontend API bridge
-        run: python - <<'PY'
-          from pathlib import Path
-          p = Path('index.html')
-          text = p.read_text(encoding='utf-8')
-          for tag in ['<script src="frontend-bridge.js"></script>', '<script src="role-navigation.js"></script>']:
-              if tag not in text:
-                  text = text.replace('</body>', tag + '</body>')
-          p.write_text(text, encoding='utf-8')
-          PY
+
+      - name: Wire frontend scripts
+        run: |
+          printf '\n<script src="frontend-bridge.js"></script>\n<script src="role-navigation.js"></script>\n' >> index.html
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
