@@ -26,9 +26,9 @@ jobs:
           from pathlib import Path
           p = Path('index.html')
           text = p.read_text(encoding='utf-8')
-          tag = '<script src="frontend-bridge.js"></script>'
-          if tag not in text:
-              text = text.replace('</body>', tag + '</body>')
+          for tag in ['<script src="frontend-bridge.js"></script>', '<script src="role-navigation.js"></script>']:
+              if tag not in text:
+                  text = text.replace('</body>', tag + '</body>')
           p.write_text(text, encoding='utf-8')
           PY
       - name: Upload artifact
