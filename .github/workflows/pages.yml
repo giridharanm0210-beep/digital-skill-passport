@@ -29,7 +29,33 @@ jobs:
 
       - name: Wire frontend scripts
         run: |
-          printf '\n<script src="frontend-bridge.js"></script>\n<script src="role-navigation.js"></script>\n' >> index.html
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('index.html')
+          text = path.read_text(encoding='utf-8')
+          scripts = '\n<script src="frontend-bridge.js"></script>\n<script src="role-navigation.js"></script>\n'
+          text = text.replace(scripts, '\n')
+          text = text.replace('\n<script src="frontend-bridge.js"></script>\n<script src="role-navigation.js"></script>\n', '\n')
+          if 'frontend-bridge.js' not in text:
+              marker = '</body>'
+              if marker in text:
+                  text = text.replace(marker, scripts + marker, 1)
+              else:
+                  text += scripts
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate HTML script wiring
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('index.html').read_text(encoding='utf-8')
+          assert text.count('frontend-bridge.js') == 1, 'frontend-bridge.js must be included exactly once'
+          assert text.count('role-navigation.js') == 1, 'role-navigation.js must be included exactly once'
+          assert text.index('frontend-bridge.js') < text.index('</body>'), 'frontend-bridge.js must be inside body'
+          assert text.index('role-navigation.js') < text.index('</body>'), 'role-navigation.js must be inside body'
+          print('HTML script wiring validated')
+          PY
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
