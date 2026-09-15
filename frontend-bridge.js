@@ -2,6 +2,7 @@
   const API = 'https://digital-skill-passport-api.onrender.com';
   let session = null;
   window.DSP_USER = window.DSP_USER || {};
+
   async function call(path, options = {}) {
     const headers = new Headers(options.headers || {});
     if (session) headers.set('Authorization', 'Bearer ' + session);
@@ -11,10 +12,23 @@
     if (!r.ok) throw new Error(data.error || 'API request failed');
     return data;
   }
+
   const oldEnter = window.enterApp;
   const oldLogout = window.logout;
   const oldAnalyze = window.analyzeResume;
   const oldGap = window.renderGap;
+
+  function addNameField() {
+    const setup = document.getElementById('roleSetup');
+    if (!setup || document.getElementById('loginName')) return;
+    const panel = setup.querySelector('.login');
+    if (!panel) return;
+    const roles = panel.querySelector('.roles');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin:18px 0 14px;text-align:left';
+    wrap.innerHTML = '<label for="loginName"><b>Your name</b></label><input id="loginName" type="text" placeholder="Enter your full name" autocomplete="name" style="width:100%;margin-top:8px;box-sizing:border-box">';
+    if (roles) panel.insertBefore(wrap, roles); else panel.appendChild(wrap);
+  }
 
   function applyUserName(name) {
     const safeName = name || 'User';
@@ -29,8 +43,9 @@
   }
 
   window.enterApp = async function () {
+    addNameField();
     const name = (document.getElementById('loginName')?.value || '').trim();
-    if (!name) { toast('Enter your name to continue'); return; }
+    if (!name) { toast('Enter your name to continue'); document.getElementById('loginName')?.focus(); return; }
     window.DSP_USER.name = name;
     try {
       const email = `${name.toLowerCase().replace(/[^a-z0-9]+/g,'.').replace(/^\.|\.$/g,'') || 'user'}@example.com`;
@@ -42,7 +57,9 @@
     oldEnter();
     applyUserName(window.DSP_USER.name);
   };
+
   window.logout = function () { session = null; window.DSP_USER = {}; oldLogout(); };
+
   window.analyzeResume = async function () {
     const file = document.getElementById('resumeFile')?.files?.[0];
     if (file && session) {
@@ -54,6 +71,7 @@
     }
     oldAnalyze();
   };
+
   window.renderGap = async function () {
     if (!session) return oldGap();
     try {
@@ -63,5 +81,8 @@
       if (c && data.gaps) c.innerHTML = data.gaps.map(g => `<div class="card"><h3>${g.skill}</h3><div class="muted">Current ${g.current}% · Target ${g.target}%</div><div class="bar" style="margin-top:12px"><div class="fill" style="width:${g.current}%"></div></div><p class="muted">Target: ${g.target}%</p></div>`).join('');
     } catch (e) { console.warn(e); oldGap(); }
   };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addNameField);
+  else addNameField();
   call('/api/health').then(() => console.info('DSP API online')).catch(() => {});
 })();
